@@ -1,27 +1,36 @@
 import json
+import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 MAX_TURNS = 300
 LOG_PATH = Path("game.json")
 
+NUM_SNAKES = 1
+BASE_PORT = 8000
+
 CMD = [
     "battlesnake", "play",
     "-W", "11", "-H", "11",
     "-g", "standard",
     "-m", "hz_hazard_pits",
-    "--name", "Snake1", "--url", "http://127.0.0.1:8000",
-    "--name", "Snake2", "--url", "http://127.0.0.1:8001",
-    "--name", "Snake3", "--url", "http://127.0.0.1:8002",
-    "--name", "Snake4", "--url", "http://127.0.0.1:8003",
+
+]
+
+for i in range(NUM_SNAKES):
+    port = BASE_PORT + i
+    CMD.extend(["--name", f"Snake{i+1}", "--url", f"http://127.0.0.1:{port}"])
+
+CMD.extend([
     "--foodSpawnChance", "25",
     "--minimumFood", "2",
     "--seed", "69",
     "--timeout", "1000",
     "--browser",
     "--output", str(LOG_PATH),
-]
+])
 
 def load_last_state(path: Path):
     if not path.exists():
@@ -49,6 +58,21 @@ def load_last_state(path: Path):
 def main():
     if LOG_PATH.exists():
         LOG_PATH.unlink()
+
+
+    snake_processes = []
+    print("Starting ", NUM_SNAKES, " snakes...")
+    for i in range(NUM_SNAKES):
+        port = BASE_PORT + i
+        env = os.environ.copy()
+        env["PORT"] = str(port)
+
+        snake_processes.append(
+            subprocess.Popen(
+                [sys.executable, "main.py"],
+                env=env,
+            )
+        )
 
     proc = subprocess.Popen(CMD)
 
@@ -84,6 +108,14 @@ def main():
     finally:
         if proc.poll() is None:
             proc.kill()
+
+        for p in snake_processes:
+            if p.poll() is None:
+                p.terminate()
+                try:
+                    p.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    p.kill()
 
     if last_state is None:
         print("Game end")
