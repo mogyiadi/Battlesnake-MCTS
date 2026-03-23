@@ -16,6 +16,7 @@ class MCTSnode:
         self.score = 0
         self.visits = 0
 
+    # TODO: Implement a different evaluation function here (assignment mentions Rapid Value Action Estimation)
     def ucb(self):
         if self.visits == 0:
             return float('inf')
@@ -36,6 +37,8 @@ def evaluate_state(state, current_id):
     l_largest_snake = max([s['length'] for s in snakes])
 
     health_snake = snake['health']
+
+    # TODO: Add better evaluation function here (for example checking how much of the map the snake controls)
 
     return 0.5 * (l_snake / l_largest_snake) + 0.5 * (health_snake / 100)
 
