@@ -60,7 +60,7 @@ def safe_moves(game_state: typing.Dict, snake_id):
         snake_health = snake['health']
         # If the snake is at full health, it has just eaten a food pellet,
         # in which case, the tail will stay in the current spot (because the snake grows longer)
-        if snake_health == 100:
+        if snake_health == 100 and game_state['turn'] != 1:
             for segment in snake['body']:
                 is_move_safe = avoid_collision_with_body(is_move_safe, my_head, segment)
 
