@@ -9,7 +9,7 @@ from simulator import simulate_step
 
 
 class MCTSnode:
-    def __init__(self, state, parent=None, move=None):
+    def __init__(self, state, parent=None, move=None, heuristic_score=0):
         self.state = state
         self.parent = parent
         self.move = move
@@ -17,11 +17,20 @@ class MCTSnode:
         self.score = 0
         self.visits = 0
 
+        self.heuristic_score = heuristic_score
+
     # TODO: Implement a different evaluation function here (assignment mentions Rapid Value Action Estimation)
     def ucb(self):
         if self.visits == 0:
             return float('inf')
-        return (self.score / self.visits) + math.sqrt(2) * math.sqrt(math.log(self.parent.visits) / self.visits)
+        exploitation = self.score / self.visits
+        exploration = math.sqrt(2) * math.sqrt(math.log(self.parent.visits) / self.visits)
+
+        # Progressive Bias
+        W = 5
+        mean_reward = self.score / self.visits
+        progressive_bias = W * self.heuristic_score / (self.visits * (1 - mean_reward) + 1)
+        return exploration + exploitation + progressive_bias
 
 
 def evaluate_state(state, current_id):
@@ -44,8 +53,6 @@ def evaluate_state(state, current_id):
     # Health heuristic
     health_snake = snake['health']
     health_score = health_snake / 100
-
-    # TODO: Add better evaluation function here (for example checking how much of the map the snake controls)
 
     # Safe moves heuristic
     s_moves = safe_moves(state, current_id)
@@ -170,7 +177,8 @@ def mcts_search(root_state):
                         moves[other_snake_id] = random.choice(s_moves) if s_moves else "down"
 
                 next_state = simulate_step(leaf.state, moves)
-                new_child = MCTSnode(next_state, parent=leaf, move=move)
+                heuristic_score = evaluate_state(next_state, my_id)
+                new_child = MCTSnode(next_state, parent=leaf, move=move, heuristic_score=heuristic_score)
                 leaf.children.append(new_child)
                 node_to_simulate = new_child
 
