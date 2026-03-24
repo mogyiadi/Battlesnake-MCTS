@@ -2,6 +2,7 @@ import copy
 import math
 import random
 import time
+from collections import deque
 
 from snake_helpers import safe_moves
 from simulator import simulate_step
@@ -27,20 +28,111 @@ def evaluate_state(state, current_id):
     snakes = state['board']['snakes']
     snake = next((s for s in snakes if s['id'] == current_id), None)
 
+    # If dead, return -1000
     if snake is None:
-        return 0
+        return -1000
 
+    # if no other snakes, return 1
     if len(state["board"]["snakes"]) == 1:
         return 1
 
+    # Snake length heuristic
     l_snake = snake['length']
     l_largest_snake = max([s['length'] for s in snakes])
+    l_snake_score = l_snake / l_largest_snake
 
+    # Health heuristic
     health_snake = snake['health']
+    health_score = health_snake / 100
 
     # TODO: Add better evaluation function here (for example checking how much of the map the snake controls)
 
-    return 0.5 * (l_snake / l_largest_snake) + 0.5 * (health_snake / 100)
+    # Safe moves heuristic
+    s_moves = safe_moves(state, current_id)
+    if len(s_moves) == 0:
+        return -1000
+    safe_moves_score = len(s_moves) / 4
+
+    # Food distance heuristic
+    my_head = snake['body'][0]
+    closest_dist_to_food = float('inf')
+    foods = state['board']['food']
+    if foods:
+        for food in state['board']['food']:
+            dist = abs(food['x'] - my_head['x']) + abs(food['y'] - my_head['y'])
+            if dist < closest_dist_to_food:
+                closest_dist_to_food = dist
+        board_max_dist = state['board']['width'] + state['board']['height']
+        food_score = 1 - (closest_dist_to_food / board_max_dist)
+    else:
+        food_score = 0.5
+
+
+    # Reachable cells heuristic
+    board_size = state['board']['width'] * state['board']['height']
+    reachable_cells = num_reachable_cells(state, current_id)
+    reachable_score = reachable_cells / board_size
+
+    # Hazard heuristic
+    hazard_penalty = 0
+    if state['turn'] >= 26:
+        hazards = state['board'].get('hazards', [])
+        if {'x': my_head['x'], 'y': my_head['y']} in hazards:
+            hazard_penalty = -0.5
+
+    # Combine heuristics with weights
+    score = (
+            0.05 * l_snake_score +
+            0.25 * health_score +
+            0.35 * safe_moves_score +
+            0.15 * food_score +
+            0.2 * reachable_score +
+            hazard_penalty
+    )
+
+    return score
+
+
+def num_reachable_cells(state, snake_id):
+    snake = next((s for s in state['board']['snakes'] if s['id'] == snake_id), None)
+    head = snake['body'][0]
+    head_position = (head['x'], head['y'])
+
+    visited = set()
+    queue = deque([head_position])
+
+    blocked = set()
+    for s in state['board']['snakes']:
+        for segment in s['body']:
+            blocked.add((segment['x'], segment['y']))
+
+
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in visited:
+            continue
+        visited.add((x, y))
+
+        # Look in all 4 directions
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+
+            # Don't go out of bounds
+            if not (0 <= nx < state['board']['width'] and
+                    0 <= ny < state['board']['height']):
+                continue
+
+            # Don't go through snakes
+            if (nx, ny) in blocked:
+                continue
+
+            if (nx, ny) in visited:
+                continue
+
+            queue.append((nx, ny))
+
+    return len(visited)
+
 
 
 
@@ -69,13 +161,13 @@ def mcts_search(root_state):
 
             if unexpanded_moves:
                 move = random.choice(unexpanded_moves)
-
                 moves = {my_id: move}
+
                 for snake in leaf.state['board']['snakes']:
                     other_snake_id = snake['id']
                     if other_snake_id != my_id:
                         s_moves = safe_moves(leaf.state, other_snake_id)
-                        moves[snake['id']] = random.choice(s_moves) if s_moves else "down"
+                        moves[other_snake_id] = random.choice(s_moves) if s_moves else "down"
 
                 next_state = simulate_step(leaf.state, moves)
                 new_child = MCTSnode(next_state, parent=leaf, move=move)
@@ -83,7 +175,7 @@ def mcts_search(root_state):
                 node_to_simulate = new_child
 
         # Simulation
-        simulation_depth = 15
+        simulation_depth = 50
         current_state = copy.deepcopy(node_to_simulate.state)
 
         for _ in range(simulation_depth):

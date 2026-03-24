@@ -76,4 +76,37 @@ def safe_moves(game_state: typing.Dict, snake_id):
         if isSafe:
             s_moves.append(move)
 
-    return s_moves
+    if len(s_moves) <= 1:
+        return s_moves
+    else:
+        for other_snake in snakes:
+            if other_snake['id'] == snake_id:
+                continue
+
+            if other_snake['length'] >= my_snake['length']:
+                other_head = other_snake['body'][0]
+
+                potential_other_snake_next_cells = [
+                    {"x": other_head["x"], "y": other_head["y"] + 1},
+                    {"x": other_head["x"], "y": other_head["y"] - 1},
+                    {"x": other_head["x"] - 1, "y": other_head["y"]},
+                    {"x": other_head["x"] + 1, "y": other_head["y"]}
+                ]
+
+                if is_move_safe["up"] and {"x": my_head["x"], "y": my_head["y"] + 1} in potential_other_snake_next_cells:
+                    is_move_safe["up"] = False
+                if is_move_safe["down"] and {"x": my_head["x"], "y": my_head["y"] - 1} in potential_other_snake_next_cells:
+                    is_move_safe["down"] = False
+                if is_move_safe["left"] and {"x": my_head["x"] - 1, "y": my_head["y"]} in potential_other_snake_next_cells:
+                    is_move_safe["left"] = False
+                if is_move_safe["right"] and {"x": my_head["x"] + 1, "y": my_head["y"]} in potential_other_snake_next_cells:
+                    is_move_safe["right"] = False
+
+        new_s_moves = []
+        for move, isSafe in is_move_safe.items():
+            if isSafe:
+                new_s_moves.append(move)
+        if new_s_moves:
+            return new_s_moves
+        else:
+            return s_moves

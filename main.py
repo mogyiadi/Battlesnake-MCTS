@@ -11,7 +11,8 @@
 # For more info see docs.battlesnake.com
 import random
 import typing
-from MCTS import mcts_search
+from MCTS import mcts_search, evaluate_state
+from simulator import simulate_step
 from snake_helpers import safe_moves
 
 
@@ -50,34 +51,38 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = random.choice(["up", "down", "left", "right"])
         print(f"MOVE {game_state['turn']}: {next_move} (Random)")
 
-    elif rollout == "heuristic":
+    elif rollout == "safe - random":
         s_moves = safe_moves(game_state, game_state['you']['id'])
         if len(s_moves) == 0:
             print(f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
             return {"move": "down"}
+        next_move = random.choice(s_moves)
+        print(f"MOVE {game_state['turn']}: {next_move} (Safe - Random)")
 
-        # Move towards food instead of random, to regain health and survive longer
-        food = game_state['board']['food']
-        my_head = game_state['you']['body'][0]
-        closest_food = min(food, key=lambda f: abs(f['x'] - my_head['x']) + abs(f['y'] - my_head['y']))
+    elif rollout == "heuristic":
+        my_id = game_state['you']['id']
 
-        if closest_food['x'] > my_head['x'] and 'right' in s_moves:
-            next_move = 'right'
-        elif closest_food['x'] < my_head['x'] and 'left' in s_moves:
-            next_move = 'left'
-        elif closest_food['y'] > my_head['y'] and 'up' in s_moves:
-            next_move = 'up'
-        elif closest_food['y'] < my_head['y'] and 'down' in s_moves:
-            next_move = 'down'
-        else:
-            next_move = random.choice(s_moves)
+        my_s_moves = safe_moves(game_state, my_id)
 
+        moves = {}
+        for snake in game_state['board']['snakes']:
+            if snake['id'] != my_id:
+                s_moves = safe_moves(game_state, snake['id'])
+                moves[snake['id']] = random.choice(s_moves) if s_moves else "down"
 
-        if random.random() < 0.8:
-            # Choose a random move from the safe ones
-            next_move = random.choice(s_moves)
+        best_score = -float('inf')
+        best_move = random.choice(my_s_moves) if my_s_moves else 'down'
+        for move in my_s_moves:
+            moves[my_id] = move
+            potential_next_state = simulate_step(game_state, moves)
+            score = evaluate_state(potential_next_state, my_id)
 
-        print(f"MOVE {game_state['turn']}: {next_move} (Heuristic)")
+            if score > best_score:
+                best_score = score
+                best_move = move
+
+        next_move = best_move
+        print(f"MOVE {game_state['turn']}: {best_move} (Heuristic)")
 
     else:
         next_move = mcts_search(game_state)
