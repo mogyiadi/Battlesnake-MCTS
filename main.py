@@ -14,6 +14,7 @@ import typing
 from MCTS import mcts_search, evaluate_state
 from simulator import simulate_step
 from snake_helpers import safe_moves
+from vanilla_MCTS import vanilla_mcts_search
 
 
 # info is called when you create your Battlesnake on play.battlesnake.com
@@ -83,6 +84,10 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
         next_move = best_move
         print(f"MOVE {game_state['turn']}: {best_move} (Heuristic)")
+
+    elif rollout == 'vanilla-mcts':
+        next_move = vanilla_mcts_search(game_state)
+        print(f"MOVE {game_state['turn']}: {next_move} (Vanilla MCTS)")
 
     else:
         next_move = mcts_search(game_state)
