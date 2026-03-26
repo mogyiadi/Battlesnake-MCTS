@@ -8,7 +8,7 @@ from pathlib import Path
 MAX_TURNS = 300
 LOG_PATH = Path("game.json")
 
-NUM_SNAKES = 1
+NUM_SNAKES = 4
 BASE_PORT = 8000
 
 CMD = [

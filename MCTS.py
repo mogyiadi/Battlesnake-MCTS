@@ -20,7 +20,7 @@ class MCTSnode:
         self.heuristic_score = heuristic_score
 
     # TODO: Implement a different evaluation function here (assignment mentions Rapid Value Action Estimation)
-    def ucb(self):
+    def ucb_progressive(self):
         if self.visits == 0:
             return float('inf')
         exploitation = self.score / self.visits
@@ -156,7 +156,7 @@ def mcts_search(root_state):
             possible_moves = safe_moves(leaf.state, my_id)
             if len(leaf.children) < len(possible_moves):
                 break
-            leaf = max(leaf.children, key=lambda c: c.ucb())
+            leaf = max(leaf.children, key=lambda c: c.ucb_progressive())
 
         # Expansion
         node_to_simulate = leaf

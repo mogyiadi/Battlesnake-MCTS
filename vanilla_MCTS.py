@@ -3,7 +3,6 @@ import math
 import random
 import time
 
-from MCTS import evaluate_state
 from simulator import simulate_step
 from snake_helpers import safe_moves
 
@@ -28,7 +27,7 @@ class VanillaMCTSnode:
 
 
 def vanilla_mcts_search(root_state):
-    timeout = 0.5
+    timeout = 0.8
     start_time = time.time()
     my_id = root_state['you']['id']
     root = VanillaMCTSnode(root_state)
@@ -66,13 +65,9 @@ def vanilla_mcts_search(root_state):
                 node_to_simulate = new_child
 
         # Simulation
-        simulation_depth = 50
         current_state = copy.deepcopy(node_to_simulate.state)
 
-        for _ in range(simulation_depth):
-            if current_state['turn'] >= 300:
-                break
-
+        while current_state['turn'] < 300:
             snakes = current_state['board']['snakes']
             if my_id not in [s['id'] for s in snakes] or len(snakes) <= 1:
                 break
