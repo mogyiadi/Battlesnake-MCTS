@@ -76,8 +76,11 @@ def safe_moves(game_state: typing.Dict, snake_id):
         if isSafe:
             s_moves.append(move)
 
+    # If 1 or less safe moves, return
     if len(s_moves) <= 1:
         return s_moves
+    # If more than 1 safe move, check for potential head-on collisions
+    # with other snakes that are the same length or longer
     else:
         for other_snake in snakes:
             if other_snake['id'] == snake_id:
@@ -86,6 +89,7 @@ def safe_moves(game_state: typing.Dict, snake_id):
             if other_snake['length'] >= my_snake['length']:
                 other_head = other_snake['body'][0]
 
+                # Calculate the potential next cells for the other snake's head
                 potential_other_snake_next_cells = [
                     {"x": other_head["x"], "y": other_head["y"] + 1},
                     {"x": other_head["x"], "y": other_head["y"] - 1},
@@ -93,6 +97,7 @@ def safe_moves(game_state: typing.Dict, snake_id):
                     {"x": other_head["x"] + 1, "y": other_head["y"]}
                 ]
 
+                # Check which moves might collide with the other snake's head
                 if is_move_safe["up"] and {"x": my_head["x"], "y": my_head["y"] + 1} in potential_other_snake_next_cells:
                     is_move_safe["up"] = False
                 if is_move_safe["down"] and {"x": my_head["x"], "y": my_head["y"] - 1} in potential_other_snake_next_cells:
@@ -108,5 +113,7 @@ def safe_moves(game_state: typing.Dict, snake_id):
                 new_s_moves.append(move)
         if new_s_moves:
             return new_s_moves
+        # If all safe moves are potentially unsafe due to head-on collisions,
+        # return the original safe moves
         else:
             return s_moves

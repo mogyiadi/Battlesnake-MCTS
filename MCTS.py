@@ -58,7 +58,7 @@ def evaluate_state(state, current_id):
     s_moves = safe_moves(state, current_id)
     if len(s_moves) == 0:
         return -1000
-    safe_moves_score = len(s_moves) / 4
+    safe_moves_score = len(s_moves) / 3
 
     # Food distance heuristic
     my_head = snake['body'][0]
