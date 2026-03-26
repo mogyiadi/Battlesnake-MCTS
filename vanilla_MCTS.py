@@ -70,6 +70,9 @@ def vanilla_mcts_search(root_state):
         current_state = copy.deepcopy(node_to_simulate.state)
 
         for _ in range(simulation_depth):
+            if current_state['turn'] >= 300:
+                break
+
             snakes = current_state['board']['snakes']
             if my_id not in [s['id'] for s in snakes] or len(snakes) <= 1:
                 break

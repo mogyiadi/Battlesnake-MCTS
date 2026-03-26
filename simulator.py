@@ -60,15 +60,19 @@ def simulate_step(current_state, moves):
     for snake in snakes:
         head = snake["body"][0]
 
+        # If the snake moves out of bounds, it dies
         if head["x"] < 0 or head["x"] >= board["width"] or head["y"] < 0 or head["y"] >= board["height"]:
             dead_snake_ids.add(snake["id"])
             continue
 
         for other_snake in snakes:
+            # If the snake collides with itself or another snake's body, it dies
             if head in other_snake["body"][1:]:
                 dead_snake_ids.add(snake["id"])
                 break
 
+            # If the snake's head collides with another snake's head,
+            # the shorter snake dies (or both if they are of the same length)
             if snake["id"] != other_snake["id"]:
                 other_head = other_snake["body"][0]
                 if head == other_head:
@@ -82,10 +86,15 @@ def simulate_step(current_state, moves):
             continue
         head = snake["body"][0]
 
+        # If the snake eats food, it grows (doesn't remove tail),
+        # and health resets to 100
         if head in food:
             snake["health"] = 100
             snake["length"] += 1
             food.remove(head)
+        # If the snake doesn't eat food,
+        # it moves forward without growing
+        # (so the tail is removed)
         else:
             snake["body"].pop()
 
