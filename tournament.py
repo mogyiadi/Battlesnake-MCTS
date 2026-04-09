@@ -6,9 +6,8 @@ import time
 
 GAMES = 15
 
-# Changed ports to 8010+ to avoid the "ghost" servers from the tuner crashing the game!
 snakes = [
-    {"name": "Steered_MCTS", "port": "8010", "brain": "mcts"},
+    {"name": "Enhanced_MCTS", "port": "8010", "brain": "mcts"},
     {"name": "Vanilla_MCTS", "port": "8011", "brain": "vanilla-mcts"},
     {"name": "Heuristic", "port": "8012", "brain": "heuristic"},
     {"name": "Safe_Random", "port": "8013", "brain": "safe - random"}
@@ -106,7 +105,6 @@ def main():
 
         print(f"playing game {i + 1}... ", end="", flush=True)
 
-        # We capture stderr here so if the engine crashes again, it prints the real reason!
         proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 
         survivors = get_survivors()
