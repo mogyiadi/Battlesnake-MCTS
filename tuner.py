@@ -5,8 +5,8 @@ import subprocess
 import sys
 import time
 
-GAMES_TO_PLAY = 5
-CONFIGS = 5
+GAMES_TO_PLAY = 20
+CONFIGS = 10
 
 
 def get_random_weights():
