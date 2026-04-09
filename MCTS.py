@@ -3,10 +3,10 @@ import math
 import random
 import time
 from collections import deque
+import os
 
 from snake_helpers import safe_moves
 from simulator import simulate_step
-
 
 class MCTSnode:
     def __init__(self, state, parent=None, move=None, heuristic_score=0):
@@ -19,7 +19,6 @@ class MCTSnode:
 
         self.heuristic_score = heuristic_score
 
-    # TODO: Implement a different evaluation function here (assignment mentions Rapid Value Action Estimation)
     def ucb_progressive(self):
         if self.visits == 0:
             return float('inf')
@@ -32,6 +31,54 @@ class MCTSnode:
         progressive_bias = W * self.heuristic_score / (self.visits * (1 - mean_reward) + 1)
         return exploration + exploitation + progressive_bias
 
+
+def get_steered_rollout_move(state, snake_id):
+    # 70% random safe move. 30% greedy move towards food.
+    potential_moves = safe_moves(state, snake_id)
+
+    # Fallback if no safe moves exist
+    if not potential_moves:
+        return "down"
+
+    # Epsilon-greedy exploration: 70% of the time, just do a fast random move
+    if random.random() < 0.7:
+        return random.choice(potential_moves)
+
+    # Exploitation: 30% of the time, pick the move that minimizes distance to food
+    best_move = potential_moves[0]
+    best_score = -float('inf')
+
+    snake = next((s for s in state['board']['snakes'] if s['id'] == snake_id), None)
+    if snake is None:
+        return random.choice(potential_moves)
+
+    head = snake['body'][0]
+    foods = state['board']['food']
+
+    if foods:
+        for move in potential_moves:
+            nx, ny = head['x'], head['y']
+            if move == "up":
+                ny += 1
+            elif move == "down":
+                ny -= 1
+            elif move == "left":
+                nx -= 1
+            elif move == "right":
+                nx += 1
+
+            # Find distance to the closest food for this potential move
+            min_dist = min(abs(food['x'] - nx) + abs(food['y'] - ny) for food in foods)
+
+            # We want the smallest distance, so we use negative distance for our score
+            score = -min_dist
+            if score > best_score:
+                best_score = score
+                best_move = move
+        return best_move
+
+    # If no food on board, default to random safe move
+    return random.choice(potential_moves)
 
 def evaluate_state(state, current_id):
     snakes = state['board']['snakes']
@@ -80,20 +127,28 @@ def evaluate_state(state, current_id):
     reachable_cells = num_reachable_cells(state, current_id)
     reachable_score = reachable_cells / board_size
 
-    # Hazard heuristic
+    # Read weights from environment, defaulting to our TUNED BEST (Challenger #3)
+    w_length = float(os.environ.get("W_LENGTH", 0.135))
+    w_health = float(os.environ.get("W_HEALTH", 0.109))
+    w_safe = float(os.environ.get("W_SAFE", 0.252))
+    w_food = float(os.environ.get("W_FOOD", 0.210))
+    w_reach = float(os.environ.get("W_REACH", 0.294))
+    w_hazard = float(os.environ.get("W_HAZARD", -0.465))
+
+    # Hazard heuristic (using dynamic weight)
     hazard_penalty = 0
     if state['turn'] >= 26:
         hazards = state['board'].get('hazards', [])
         if {'x': my_head['x'], 'y': my_head['y']} in hazards:
-            hazard_penalty = -0.5
+            hazard_penalty = w_hazard
 
     # Combine heuristics with weights
     score = (
-            0.05 * l_snake_score +
-            0.25 * health_score +
-            0.35 * safe_moves_score +
-            0.15 * food_score +
-            0.2 * reachable_score +
+            w_length * l_snake_score +
+            w_health * health_score +
+            w_safe * safe_moves_score +
+            w_food * food_score +
+            w_reach * reachable_score +
             hazard_penalty
     )
 
@@ -196,8 +251,7 @@ def mcts_search(root_state):
 
             rollout_moves = {}
             for snake in snakes:
-                potential_moves = safe_moves(current_state, snake['id'])
-                rollout_moves[snake['id']] = random.choice(potential_moves) if potential_moves else "down"
+                rollout_moves[snake['id']] = get_steered_rollout_move(current_state, snake['id'])
 
             current_state = simulate_step(current_state, rollout_moves)
 
@@ -216,4 +270,3 @@ def mcts_search(root_state):
 
     best_child = max(root.children, key=lambda c: c.visits)
     return best_child.move
-

@@ -12,7 +12,7 @@ NUM_SNAKES = 4
 BASE_PORT = 8000
 
 CMD = [
-    "battlesnake", "play",
+    "./battlesnake", "play",
     "-W", "11", "-H", "11",
     "-g", "standard",
     "-m", "hz_hazard_pits",

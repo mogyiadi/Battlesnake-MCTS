@@ -15,6 +15,7 @@ from MCTS import mcts_search, evaluate_state
 from simulator import simulate_step
 from snake_helpers import safe_moves
 from vanilla_MCTS import vanilla_mcts_search
+import os
 
 
 # info is called when you create your Battlesnake on play.battlesnake.com
@@ -46,7 +47,7 @@ def end(game_state: typing.Dict):
 # Valid moves are "up", "down", "left", or "right"
 # See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
-    rollout = "heuristic"
+    rollout = os.environ.get("SNAKE_BRAIN", "mcts")
 
     if rollout == "random":
         next_move = random.choice(["up", "down", "left", "right"])
